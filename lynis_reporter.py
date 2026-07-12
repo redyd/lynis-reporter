@@ -212,6 +212,9 @@ class LynisReporterApp(tk.Tk):
         action_row = ttk.Frame(self.input_frame)
         action_row.pack(fill="x", pady=(10, 0))
         ttk.Button(action_row, text="Analyze", style="Accent.TButton", command=self._analyze).pack(side="left")
+        ttk.Button(action_row, text="Clear", style="Secondary.TButton", command=self._clear_input).pack(
+            side="left", padx=(8, 0)
+        )
 
     def _load_file(self):
         path = filedialog.askopenfilename(
@@ -229,6 +232,10 @@ class LynisReporterApp(tk.Tk):
         self.text_input.delete("1.0", "end")
         self.text_input.insert("1.0", content)
         self.file_label.config(text=path.split("/")[-1])
+
+    def _clear_input(self):
+        self.text_input.delete("1.0", "end")
+        self.file_label.config(text="")
 
     def _analyze(self):
         content = self.text_input.get("1.0", "end")
