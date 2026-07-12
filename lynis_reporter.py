@@ -336,20 +336,28 @@ class LynisReporterApp(tk.Tk):
         vscroll.pack(side="right", fill="y")
 
         self.tree.bind("<Double-1>", lambda _event: self._open_selected_doc())
+        self.tree.bind("<Button-3>", self._show_context_menu)
+
+        self.context_menu = tk.Menu(self.tree, tearoff=0)
+        self.context_menu.add_command(label="Copy", command=self._copy_selected_finding)
 
         self._sort_state = {"column": None, "reverse": False}
+        self._visible_findings: dict[str, Finding] = {}
 
     def _populate_table(self, findings: list[Finding]):
         self.tree.delete(*self.tree.get_children())
+        self._visible_findings = {}
         for index, f in enumerate(findings):
+            iid = str(index)
             label = "Warning" if f.severity == "warning" else "Suggestion"
             self.tree.insert(
                 "",
                 "end",
-                iid=str(index),
+                iid=iid,
                 values=(label, f.test_id, f.description, f.doc_url),
                 tags=(f.severity,),
             )
+            self._visible_findings[iid] = f
 
     def _apply_filters(self):
         if not self.report:
@@ -374,6 +382,29 @@ class LynisReporterApp(tk.Tk):
         items.sort(key=lambda t: t[0].lower(), reverse=reverse)
         for index, (_, iid) in enumerate(items):
             self.tree.move(iid, "", index)
+
+    def _show_context_menu(self, event):
+        iid = self.tree.identify_row(event.y)
+        if not iid:
+            return
+        self.tree.selection_set(iid)
+        self.context_menu.tk_popup(event.x_root, event.y_root)
+
+    def _copy_selected_finding(self):
+        selection = self.tree.selection()
+        if not selection:
+            return
+        finding = self._visible_findings.get(selection[0])
+        if not finding:
+            return
+        label = "Warning" if finding.severity == "warning" else "Suggestion"
+        lines = [f"[{label}] {finding.test_id}: {finding.description}"]
+        if finding.detail:
+            lines.append(finding.detail)
+        if finding.doc_url:
+            lines.append(finding.doc_url)
+        self.clipboard_clear()
+        self.clipboard_append("\n".join(lines))
 
     def _open_selected_doc(self):
         selection = self.tree.selection()
